@@ -25,6 +25,10 @@ Recently Valorant AC is blocking 2nd mouse input, arduino became useless, aimbot
 - Shit Menu  
   
 # Arduino code  
+   
+Send data to comport like: x,y
+If send '15,9' arduino will move your mouse 15 to x and 9 to y (15 right 9 down)
+  
 ```ino
 #include <Mouse.h>
 
