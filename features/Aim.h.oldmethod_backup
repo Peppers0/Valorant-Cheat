@@ -1,0 +1,88 @@
+#pragma once
+
+#include <iostream>
+#include <Windows.h>
+#include <thread>
+
+#include "HSV.h"
+#include "Screen.h"
+#include "Keys.h"
+#include "SETTINGS.h"
+
+using namespace std;
+
+class Aim {
+	public:
+		static void move(int x, int y) {
+			INPUT Input = { 0 };
+
+			ZeroMemory(&Input, sizeof(INPUT));
+
+			Input.type = INPUT_MOUSE;
+
+			Input.mi.dwFlags = MOUSEEVENTF_MOVE;
+
+			Input.mi.dx = x;
+			Input.mi.dy = y;
+
+			SendInput(1, &Input, sizeof(INPUT));
+		};
+
+		static void loop() {
+			Screen::getSize();
+
+			int x = Screen::width / 2;  //DONT NEED TO BE CALLED EVERY TICK, THE DESKTOP MONITOR SIZE DOESNT CHANGE!
+			int y = Screen::height / 2; //DONT NEED TO BE CALLED EVERY TICK, THE DESKTOP MONITOR SIZE DOESNT CHANGE!
+
+			RGBTRIPLE rgbTriple;
+			HDC desktopHdc = GetDC(NULL);
+
+			int addX = 0;
+
+			int grabbX = 0;
+
+			while (1) {
+				if ((GetAsyncKeyState(VK_XBUTTON1) && isDown)) { //IS PRESSING AIM KEY
+					for (int iX = 0; iX < SETTINGS::AIM_SIZE; iX++) {
+
+						if (iX >= SETTINGS::AIM_SIZE / 2) addX = ((SETTINGS::AIM_SIZE / 2) - iX); //MAKES A x RECT AROUND THE MIDDLE SCREEN
+						if (iX < SETTINGS::AIM_SIZE / 2) addX = ((SETTINGS::AIM_SIZE / 2) - iX); //MAKES A x RECT AROUND THE MIDDLE SCREEN
+
+						COLORREF color = GetPixel(desktopHdc, x + addX, y);
+
+						rgbTriple.rgbtRed = GetRValue(color);
+						rgbTriple.rgbtGreen = GetGValue(color);
+						rgbTriple.rgbtBlue = GetBValue(color);
+
+						Color::HSV rgbToHue = toHSV((float)rgbTriple.rgbtRed, (float)rgbTriple.rgbtGreen, (float)rgbTriple.rgbtBlue);
+						Color::ColorName name = Categorize(rgbToHue);
+						string cname = Color::toString(name);
+						
+						if (cname == "magenta" && (GetAsyncKeyState(VK_XBUTTON1) && isDown) && (rgbToHue.s * 100 <= 80 && rgbToHue.s * 100 > 15)) {
+							if (grabbX == 0) grabbX = addX;
+
+							int pAddX = addX;
+							if (addX < 0) pAddX = addX * -1;
+
+							if (pAddX < grabbX) grabbX = addX;
+
+							POINT p;
+							GetCursorPos(&p);
+
+							int mX = p.x - (x + grabbX);
+							int mY = 0;
+
+							mX *= -1;
+
+							int Xbug = p.x - (x + grabbX);
+							if (Xbug < 0) Xbug *= -1;
+
+							if(Xbug < (SETTINGS::AIM_SIZE / 2)) move(mX, mY);
+
+							this_thread::sleep_for(10ms);
+						}
+					}
+				}
+			}
+		};
+};
